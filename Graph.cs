@@ -19,11 +19,13 @@ namespace Marmot
             Areas = areas ?? new List<double>();
 
             // Sort edges for consistency
+            List<Tuple<string, string>> newEdges = new List<Tuple<string, string>>();
             foreach (var edge in Edges)
             {
                 var sortedEdge = edge.Item1.CompareTo(edge.Item2) < 0 ? edge : new Tuple<string, string>(edge.Item2, edge.Item1);
-                Edges[Edges.IndexOf(edge)] = sortedEdge;
+                newEdges.Add(sortedEdge);
             }
+            Edges = newEdges;
 
             Edges = Edges.Distinct().ToList();  // Remove duplicate edges
             Nodes = Nodes.Distinct().ToList();  // Remove duplicate nodes
