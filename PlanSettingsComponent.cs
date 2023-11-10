@@ -1,6 +1,6 @@
-using System;
 using Grasshopper.Kernel;
 using marmot;
+using System;
 
 namespace Marmot
 {
@@ -17,9 +17,9 @@ namespace Marmot
         {
             pManager.AddNumberParameter(
                 "Weight Position",
-                "wfR", 
+                "wfR",
                 "relative weight of the position of fixed rooms " +
-                "- higher weight means that fixed rooms will be closer to fixed positions", 
+                "- higher weight means that fixed rooms will be closer to fixed positions",
                 GH_ParamAccess.item
                 );
             pManager.AddNumberParameter(

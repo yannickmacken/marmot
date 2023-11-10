@@ -1,8 +1,8 @@
-using System;
-using System.Collections.Generic;
 using Grasshopper.Kernel;
 using marmot;
 using Rhino.Geometry;
+using System;
+using System.Collections.Generic;
 
 namespace Marmot
 {
@@ -46,9 +46,9 @@ namespace Marmot
 
             if (!DA.GetData(0, ref graph)) return;
             if (!DA.GetData(1, ref inRectangle)) return;
-            if (!DA.GetDataList(2, fixedRooms)) {};
-            if (!DA.GetDataList(3, fixedPoints)) {};
-            if (!DA.GetData(4, ref settings)) {};
+            if (!DA.GetDataList(2, fixedRooms)) { };
+            if (!DA.GetDataList(3, fixedPoints)) { };
+            if (!DA.GetData(4, ref settings)) { };
 
             // Component logic .. 
 
