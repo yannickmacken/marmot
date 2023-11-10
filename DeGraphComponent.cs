@@ -1,7 +1,6 @@
-using System;
-using System.Collections.Generic;
 using Grasshopper.Kernel;
-using Rhino.Geometry;
+using System;
+using System.Linq;
 
 namespace Marmot
 {
@@ -32,8 +31,13 @@ namespace Marmot
 
             if (!DA.GetData(0, ref graph)) return;
 
+            // Transforming the list of tuples into the desired format
+            var transformedEdges = graph.Edges.Select(
+                edge => $"{edge.Item1}-{edge.Item2}"
+            ).ToList();
+
             DA.SetDataList(0, graph.Nodes);
-            DA.SetDataList(1, graph.Edges);
+            DA.SetDataList(1, transformedEdges);
             DA.SetDataList(2, graph.Areas);
         }
 
