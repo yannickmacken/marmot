@@ -8,9 +8,30 @@
     <TargetExt>.gha</TargetExt>
     <Configurations>Debug;Release;test</Configurations>
   </PropertyGroup>
+	
+  <ItemGroup>
+    <None Remove="dissections\dissections_1_rooms.json" />
+    <None Remove="dissections\dissections_2_rooms.json" />
+    <None Remove="dissections\dissections_3_rooms.json" />
+    <None Remove="dissections\dissections_4_rooms.json" />
+    <None Remove="dissections\dissections_5_rooms.json" />
+    <None Remove="dissections\dissections_6_rooms.json" />
+    <None Remove="dissections\dissections_7_rooms.json" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <EmbeddedResource Include="dissections\dissections_1_rooms.json" />
+    <EmbeddedResource Include="dissections\dissections_2_rooms.json" />
+    <EmbeddedResource Include="dissections\dissections_3_rooms.json" />
+    <EmbeddedResource Include="dissections\dissections_4_rooms.json" />
+    <EmbeddedResource Include="dissections\dissections_5_rooms.json" />
+    <EmbeddedResource Include="dissections\dissections_6_rooms.json" />
+    <EmbeddedResource Include="dissections\dissections_7_rooms.json" />
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="Grasshopper" Version="7.13.21348.13001" IncludeAssets="compile;build" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   
   <PropertyGroup Condition="$(Configuration) == 'Debug' AND $([MSBuild]::IsOSPlatform(Windows))">

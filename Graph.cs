@@ -17,6 +17,8 @@ namespace Marmot
 			List<Tuple<List<int>, List<int>>> rooms = null,
 			List<double> areas = null)
 		{
+			// Add some error checking: max 7 rooms, edges should match nodes..
+
 			Nodes = nodes ?? new List<string>();
 			Edges = edges ?? new List<Tuple<string, string>>();
 			Rooms = rooms ?? new List<Tuple<List<int>, List<int>>>();
