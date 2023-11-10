@@ -6,6 +6,7 @@
     <Title>marmot</Title>
     <Description>Description of marmot</Description>
     <TargetExt>.gha</TargetExt>
+    <Configurations>Debug;Release;test</Configurations>
   </PropertyGroup>
   
   <ItemGroup>

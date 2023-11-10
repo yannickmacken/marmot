@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "marmot": {
+      "commandName": "Project",
+      "commandLineArgs": "/runscript=\"-Grasshopper _Document _Open C:\\Users\\viktor\\Downloads\\test_file_marmot.gh _enter\""
+    }
+  }
+}

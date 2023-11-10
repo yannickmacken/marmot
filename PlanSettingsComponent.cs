@@ -20,29 +20,38 @@ namespace Marmot
                 "wfR",
                 "relative weight of the position of fixed rooms " +
                 "- higher weight means that fixed rooms will be closer to fixed positions",
-                GH_ParamAccess.item
+                GH_ParamAccess.item,
+                1.0
                 );
             pManager.AddNumberParameter(
                 "Weight Area",
                 "wA",
                 "relative weight of the areas of the rooms " +
                 "- higher weight means that areas of rooms will match required areas more closely",
-                GH_ParamAccess.item
+                GH_ParamAccess.item,
+                1.0
                 );
             pManager.AddNumberParameter(
                 "Weight Proportion",
                 "wP",
                 "relative weight of the proportion of the rooms " +
                 "- higher weight means that the proportions of the rooms will be more squarish",
-                GH_ParamAccess.item
+                GH_ParamAccess.item,
+                1.0
                 );
             pManager.AddNumberParameter(
                 "Min Wall Length",
                 "M",
                 "Minimum wall lenght between two connected rooms, 1 by default",
-                GH_ParamAccess.item
+                GH_ParamAccess.item,
+                1.0
                 );
+            pManager[0].Optional = true;
+            pManager[1].Optional = true;
+            pManager[2].Optional = true;
+            pManager[3].Optional = true;
         }
+
 
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
