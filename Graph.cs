@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Marmot
 {
-	public class Graph
+	internal class Graph
 	{
 		public List<string> Nodes { get; set; }
 		public List<Tuple<string, string>> Edges { get; set; }
@@ -37,17 +37,17 @@ namespace Marmot
 			Nodes = Nodes.Distinct().ToList();  // Remove duplicate nodes
 		}
 
-		public bool HasNode(string node)
+		private bool HasNode(string node)
 		{
 			return Nodes.Contains(node);
 		}
 
-		public bool HasEdge(Tuple<string, string> edge)
+		private bool HasEdge(Tuple<string, string> edge)
 		{
 			return Edges.Contains(edge);
 		}
 
-		public void AddNode(string node)
+		private void AddNode(string node)
 		{
 			if (!HasNode(node))
 			{
@@ -55,7 +55,7 @@ namespace Marmot
 			}
 		}
 
-		public void AddEdge(Tuple<string, string> edge)
+		private void AddEdge(Tuple<string, string> edge)
 		{
 			if (!HasEdge(edge) && HasNode(edge.Item1) && HasNode(edge.Item2))
 			{
@@ -63,7 +63,7 @@ namespace Marmot
 			}
 		}
 
-		public void RemoveNode(string node)
+		private void RemoveNode(string node)
 		{
 			if (HasNode(node))
 			{
@@ -72,7 +72,7 @@ namespace Marmot
 			}
 		}
 
-		public void RemoveEdge(Tuple<string, string> edge)
+		private void RemoveEdge(Tuple<string, string> edge)
 		{
 			if (HasEdge(edge))
 			{
@@ -80,7 +80,7 @@ namespace Marmot
 			}
 		}
 
-		public void AddRoom(Tuple<List<int>, List<int>> room)
+		private void AddRoom(Tuple<List<int>, List<int>> room)
 		{
 			Rooms.Add(room);
 		}
@@ -165,6 +165,54 @@ namespace Marmot
 		{
 			return obj is Graph graph &&
 				   this == graph;
+		}
+
+		private Graph Clone()
+		{
+			var clone = new Graph(
+				new List<string>(this.Nodes),
+				new List<Tuple<string, string>>(this.Edges),
+				this.Rooms.Select(r => new Tuple<List<int>, List<int>>(new List<int>(r.Item1), new List<int>(r.Item2))).ToList(),
+				new List<double>(this.Areas)
+			);
+			return clone;
+		}
+
+		public Graph RotateGraph()
+		{
+			var rotatedGraph = this.Clone();
+			for (int i = 0; i < rotatedGraph.Rooms.Count; i++)
+			{
+				rotatedGraph.Rooms[i] = new Tuple<List<int>, List<int>>(rotatedGraph.Rooms[i].Item2, rotatedGraph.Rooms[i].Item1);
+			}
+			return rotatedGraph;
+		}
+
+		public List<Graph> MirrorGraph()
+		{
+			var xmMappedGraph = this.Clone();
+			var ymMappedGraph = this.Clone();
+			var xymMappedGraph = this.Clone();
+
+			int mxWidth = this.Rooms.Max(room => room.Item1.Last());
+			int myWidth = this.Rooms.Max(room => room.Item2.Last());
+
+			for (int i = 0; i < this.Rooms.Count; i++)
+			{
+				xmMappedGraph.Rooms[i] = new Tuple<List<int>, List<int>>(
+					xmMappedGraph.Rooms[i].Item1.Select(j => mxWidth - j).Reverse().ToList(),
+					new List<int>(xmMappedGraph.Rooms[i].Item2));
+
+				ymMappedGraph.Rooms[i] = new Tuple<List<int>, List<int>>(
+					new List<int>(ymMappedGraph.Rooms[i].Item1),
+					ymMappedGraph.Rooms[i].Item2.Select(j => myWidth - j).Reverse().ToList());
+
+				xymMappedGraph.Rooms[i] = new Tuple<List<int>, List<int>>(
+					xymMappedGraph.Rooms[i].Item1.Select(j => mxWidth - j).Reverse().ToList(),
+					xymMappedGraph.Rooms[i].Item2.Select(j => myWidth - j).Reverse().ToList());
+			}
+
+			return new List<Graph> { xmMappedGraph, ymMappedGraph, xymMappedGraph };
 		}
 
 		public override int GetHashCode()

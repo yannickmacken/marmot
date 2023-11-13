@@ -30,6 +30,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <PackageReference Include="Accord.Math" Version="3.8.0" />
     <PackageReference Include="Grasshopper" Version="7.13.21348.13001" IncludeAssets="compile;build" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>

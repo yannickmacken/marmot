@@ -1,3 +1,4 @@
+using Accord.Math.Optimization;
 using Grasshopper.Kernel;
 using marmot;
 using Newtonsoft.Json;
@@ -7,16 +8,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using static marmot.Helpers;
 
 namespace Marmot
 {
-
-	public class Dissection
-	{
-		public List<int> Nodes { get; set; }
-		public List<List<int>> Edges { get; set; }
-		public List<List<List<int>>> Rooms { get; set; }
-	}
 
 	public class PlanMaker : GH_Component
 	{
@@ -72,27 +67,178 @@ namespace Marmot
 
 			// Parse json with dissection data
 			var root = JsonConvert.DeserializeObject<List<Dissection>>(dissectionData);
-
-			// Loop through dissections
-			if (root != null)
+			if (root == null)
 			{
-				foreach (var dissection in root)
-				{
-					// Create new Graph from dissection
-					var dissection_graph = new Graph(
-						nodes: dissection.Nodes.Select(node => node.ToString()).ToList(),
-						edges: dissection.Edges.Select(
-							edge => new Tuple<string, string>(edge[0].ToString(), edge[1].ToString())
-						).ToList(),
-						rooms: dissection.Rooms.Select(
-							room => new Tuple<List<int>, List<int>>(room[0], room[1])
-						).ToList()
-					);
+				return;
+			}
 
-					// Process each dissection
-					// Access nodes, edges, and rooms here
+			// Get geometry inputs
+			var xTotal = inRectangle.Width;
+			var yTotal = inRectangle.Height;
+			var moveVector = new Vector3d(xTotal / 2, yTotal / 2, 0);
+			Transform transform = Transform.ChangeBasis(Plane.WorldXY, inRectangle.Plane);
+			Transform reverseTransform = transform.TryGetInverse(out Transform inverse) ? inverse : Transform.Unset;
+			Vector3d reverseVector = -moveVector;
+
+			// Determine weights
+			double relativeFixedRoomWeight;
+			double relativeAreaWeight;
+			double relativeProportionWeight;
+			double minSize;
+			if (settings == null)
+			{
+				relativeFixedRoomWeight = 1.0;
+				relativeAreaWeight = 1.0;
+				relativeProportionWeight = 1.0;
+				minSize = 1.0;
+			}
+			else
+			{
+				double fixedRoomWeight = settings.WFixedRooms ?? 1.0;
+				double areaWeight = settings.WAreas ?? 1.0;
+				double proportionWeight = settings.WProportions ?? 1.0;
+				minSize = settings.MinSize ?? 1.0;
+				double totalWeight = fixedRoomWeight + areaWeight + proportionWeight;
+				relativeFixedRoomWeight = fixedRoomWeight / totalWeight;
+				relativeAreaWeight = areaWeight / totalWeight;
+				relativeProportionWeight = proportionWeight / totalWeight;
+			}
+
+			// Determine fixed rooms
+			var roomsFixed = fixedRooms.Any() & fixedPoints.Any();
+			if (roomsFixed)
+			{
+				foreach (var point in fixedPoints)
+				{
+					point.Transform(transform);
+					point.Translate(moveVector);
 				}
 			}
+
+			// Loop through dissections
+			var mappedGraphs = new List<Graph>();
+			foreach (var dissection in root)
+			{
+				// Create new Graph from dissection
+				var dissectionGraph = new Graph(
+					nodes: dissection.Nodes.Select(node => node.ToString()).ToList(),
+					edges: dissection.Edges.Select(
+						edge => new Tuple<string, string>(edge[0].ToString(), edge[1].ToString())
+					).ToList(),
+					rooms: dissection.Rooms.Select(
+						room => new Tuple<List<int>, List<int>>(room[0], room[1])
+					).ToList()
+				);
+
+				// Map requirement graph onto dissection graph
+				var mappedGraphsTemp = graph.MapOnto(dissectionGraph);
+				mappedGraphs.AddRange(mappedGraphsTemp);
+
+				// Get equivalent graphs from mapped graphs
+				foreach (var mappedGraph in mappedGraphsTemp)
+				{
+					var rotatedGraph = mappedGraph.RotateGraph();
+					mappedGraphs.Add(rotatedGraph);
+					if (roomsFixed)  // If rooms fixed, orientation matters
+					{
+						var mirroredGraphs = mappedGraph.MirrorGraph();
+						mappedGraphs.AddRange(mirroredGraphs);
+					}
+				}
+			}
+
+			// Loop through mapped graphs
+			double topScore = double.MaxValue;
+			foreach (var mappedGraph in mappedGraphs)
+			{
+				// Determine starting values of room sizes
+				var xSpacing = new List<List<int>>();
+				var ySpacing = new List<List<int>>();
+				foreach (var room in mappedGraph.Rooms)
+				{
+					xSpacing.Add(room.Item1);
+					ySpacing.Add(room.Item2);
+				}
+				int xLen = xSpacing.Max(space => space.Last());
+				int yLen = ySpacing.Max(space => space.Last());
+				List<double> StartingValues = Enumerable.Repeat(xTotal / (xLen + 1), xLen)
+					.Concat(Enumerable.Repeat(yTotal / (yLen + 1), yLen)).ToList();
+
+				// Dynamically define objective function to optimize
+				double Objective(double[] z)
+				{
+
+					// Split values in x and y, subtract remaining length of edge
+					List<double> xVals = z.Take(xLen).Concat(new[] { xTotal - z.Take(xLen).Sum() }).ToList();
+					List<double> yVals = z.Skip(xLen).Take(yLen).Concat(new[] { yTotal - z.Skip(xLen).Take(yLen).Sum() }).ToList();
+					List<double> totalDiff = new List<double>();
+
+					// Add punishment for distance of fixedRoom to fixedRoomPoint
+					if (roomsFixed)
+					{
+						var constraintDistance = ConstraintDistanceRoomToPoint(
+							mappedGraph, fixedRooms, fixedPoints, xVals, yVals
+							);
+						totalDiff.Add(relativeFixedRoomWeight * constraintDistance);
+					}
+
+					// Add punishment for stretched proportion of rooms
+					for (int i = 0; i < mappedGraph.Rooms.Count; i++)
+					{
+						var room = mappedGraph.Rooms[i];
+						double xDimension = room.Item1.Sum(a => Math.Abs(xVals[a]));
+						double yDimension = room.Item2.Sum(a => Math.Abs(yVals[a]));
+
+						totalDiff.Add(relativeAreaWeight * Math.Pow(Math.Abs(mappedGraph.Areas[i] - xDimension * yDimension), 2) * 0.1);
+						totalDiff.Add(relativeProportionWeight * ConstraintProportion(
+							xDimension, yDimension
+							));
+					}
+
+					return totalDiff.Sum();
+				}
+
+				// Optimize room sizes
+				var optimizer = new NelderMead(numberOfVariables: StartingValues.Count)
+				{
+					Function = Objective,
+				};
+
+				// Check success
+				bool success = optimizer.Minimize(StartingValues.ToArray());
+				if (!success) { continue; };
+
+				// Unpack values
+				double[] optimized = optimizer.Solution;
+				if (optimized[1] < topScore)
+				{
+					topScore = optimized[1];
+				}
+
+				List<double> xtemp = new List<double>();
+				for (int i = 0; i < xLen; i++)
+				{
+					xtemp.Add(Math.Max(minSize, optimized[i]));
+				}
+				xtemp.Add(xTotal - xtemp.Sum()); // Adjust for remaining length
+
+				List<double> x = xtemp.Select(val => xTotal / xtemp.Sum() * val).ToList();
+
+				List<double> ytemp = new List<double>();
+				for (int i = xLen; i < optimized.Length; i++)
+				{
+					ytemp.Add(Math.Max(minSize, optimized[i]));
+				}
+				ytemp.Add(yTotal - ytemp.Sum()); // Adjust for remaining length
+
+				List<double> y = ytemp.Select(val => yTotal / ytemp.Sum() * val).ToList();
+
+				// Deep copy of dgraph
+				// Graph fGraph = mappedGraph.Clone();
+				// Make geometry
+
+			}
+
 
 			DA.SetDataList(0, new List<Rectangle3d>());
 		}

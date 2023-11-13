@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Marmot;
+using Rhino.Geometry;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,7 +9,14 @@ namespace marmot
 	internal class Helpers
 	{
 
-		private double ConstraintProportion(double a, double b)
+		internal class Dissection
+		{
+			public List<int> Nodes { get; set; }
+			public List<List<int>> Edges { get; set; }
+			public List<List<List<int>>> Rooms { get; set; }
+		}
+
+		internal static double ConstraintProportion(double a, double b)
 		{
 			// disincentivize long, narrow rooms
 			if (a == 0) a = 0.01;
@@ -15,6 +24,24 @@ namespace marmot
 			return Math.Max(a, b) / Math.Min(a, b) - 2;
 		}
 
+		internal static double ConstraintDistanceRoomToPoint(Graph graph, List<string> rooms, List<Point> points, List<double> xDims, List<double> yDims)
+		{
+			// Finds distances of room centers and preferred positions
+			double distance = 0;
+			for (int i = 0; i < rooms.Count; i++)
+			{
+				int fixedRoomIndex = graph.Nodes.IndexOf(rooms[i]);
+				var roomSpacing = graph.Rooms[fixedRoomIndex];
+
+				Point3d point = points[i].Location;
+
+				double xCentreRoom = (xDims.GetRange(0, roomSpacing.Item1[0]).Sum() + xDims.GetRange(0, roomSpacing.Item1.Last() + 1).Sum()) / 2;
+				double yCentreRoom = (yDims.GetRange(0, roomSpacing.Item2[0]).Sum() + yDims.GetRange(0, roomSpacing.Item2.Last() + 1).Sum()) / 2;
+
+				distance += Math.Pow(Math.Sqrt(Math.Pow(Math.Abs(xCentreRoom - point.X), 2) + Math.Pow(Math.Abs(yCentreRoom - point.Y), 2)), 2);
+			}
+			return distance;
+		}
 
 		public static Tuple<List<double>, double> NelderMead(
 		Func<List<double>, double> f,
