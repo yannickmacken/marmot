@@ -88,9 +88,9 @@ namespace Marmot
 			}
 
 			// Get geometry inputs
-			var xTotal = inRectangle.Width;
-			var yTotal = inRectangle.Height;
-			var moveVector = new Vector3d(xTotal / 2, yTotal / 2, 0);
+			var width = inRectangle.Width;
+			var height = inRectangle.Height;
+			var moveVector = new Vector3d(width / 2, height / 2, 0);
 			Transform transform = Transform.ChangeBasis(Plane.WorldXY, inRectangle.Plane);
 			Transform reverseTransform = transform.TryGetInverse(out Transform inverse) ? inverse : Transform.Unset;
 			Vector3d reverseVector = -moveVector;
@@ -187,18 +187,21 @@ namespace Marmot
 					xSpacing.Add(room.Item1);
 					ySpacing.Add(room.Item2);
 				}
-				int xLen = xSpacing.Max(space => space.Last());
-				int yLen = ySpacing.Max(space => space.Last());
-				List<double> StartingValues = Enumerable.Repeat(xTotal / (xLen + 1), xLen)
-					.Concat(Enumerable.Repeat(yTotal / (yLen + 1), yLen)).ToList();
+				int xLen = xSpacing.Max(space => space.Last()) + 1;
+				int yLen = ySpacing.Max(space => space.Last()) + 1;
+				List<double> StartingValues = Enumerable.Repeat(1.0 / (xLen), xLen)
+					.Concat(Enumerable.Repeat(1.0 / (yLen), yLen)).ToList();
 
 				// Dynamically define objective function to optimize
 				double Objective(double[] z)
 				{
 
-					// Split values in x and y, subtract remaining length of edge
-					List<double> xVals = z.Take(xLen).Concat(new[] { xTotal - z.Take(xLen).Sum() }).ToList();
-					List<double> yVals = z.Skip(xLen).Take(yLen).Concat(new[] { yTotal - z.Skip(xLen).Take(yLen).Sum() }).ToList();
+					// Split values in x and y distances
+					var spacingVals = CalculateSpacing(z, xLen, yLen, width, height);
+					List<double> xVals = spacingVals.Item1;
+					List<double> yVals = spacingVals.Item2;
+
+					// Start counting score to minimize
 					List<double> totalDiff = new List<double>();
 
 					// Add punishment for distance of fixedRoom to fixedRoomPoint
@@ -245,8 +248,9 @@ namespace Marmot
 				{
 					// Save top option
 					topScore = score;
-					topX = CalculateSpacing(optimized, 0, xLen, minSize, xTotal);
-					topY = CalculateSpacing(optimized, xLen, optimized.Length, minSize, yTotal);
+					var spacingVals = CalculateSpacing(optimized, xLen, yLen, width, height);
+					topX = spacingVals.Item1;
+					topY = spacingVals.Item2;
 					topGraph = mappedGraph;
 				}
 			}

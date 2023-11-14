@@ -43,17 +43,25 @@ namespace marmot
 			return distance;
 		}
 
-		public static List<double> CalculateSpacing(double[] values, int start, int end, double minSize, double totalSize)
+		internal static Tuple<List<double>, List<double>> CalculateSpacing(
+			double[] zVals,
+			int xLen,
+			int yLen,
+			double width,
+			double height
+			)
 		{
-			List<double> temp = new List<double>();
-			for (int i = start; i < end; i++)
-			{
-				temp.Add(Math.Max(minSize, values[i]));
-			}
-			temp.Add(totalSize - temp.Sum()); // Adjust for remaining length
+			// Split values in x and y distances
+			List<double> xVals = zVals.Take(xLen).ToList();
+			List<double> yVals = zVals.Skip(xLen).Take(yLen).ToList();
+			double totalX = xVals.Sum();
+			double totalY = yVals.Sum();
+			xVals = xVals.Select(x => width * x / totalX).ToList();
+			yVals = yVals.Select(y => height * y / totalY).ToList();
 
-			return temp.Select(val => totalSize / temp.Sum() * val).ToList();
+			return new Tuple<List<double>, List<double>>(xVals, yVals);
 		}
+
 
 		public static Tuple<List<double>, double> NelderMead(
 		Func<List<double>, double> f,
