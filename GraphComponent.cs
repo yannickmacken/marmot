@@ -1,6 +1,7 @@
 using Grasshopper.Kernel;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Marmot
 {
@@ -35,17 +36,38 @@ namespace Marmot
 			if (!DA.GetDataList(1, edgesInput)) return;
 			if (!DA.GetDataList(2, areasInput)) return;
 
-			List<Tuple<string, string>> edges = new List<Tuple<string, string>>();
-			foreach (string edge in edgesInput)
+			// Error handling
+			if (nodesInput.Count > 7)
 			{
-				// assuming edge is formatted like "node1-node2"
-				string[] nodeNames = edge.Split('-');
-				edges.Add(new Tuple<string, string>(nodeNames[0], nodeNames[1]));
+				throw new Exception("Maximum 7 nodes allowed per graph.");
+			}
+			if (nodesInput.Count > 4 && edgesInput.Count < nodesInput.Count - 2)
+			{
+				throw new Exception(string.Format(
+						"Minimum {0} edges required for graph with {1} nodes.",
+						nodesInput.Count - 2, nodesInput.Count
+					)
+				);
+			}
+			if (nodesInput.Count != areasInput.Count)
+			{
+				throw new Exception("Amount of nodes should be equal to areas.");
 			}
 
-			// Assuming Graph is a class defined earlier.
-			List<Tuple<List<int>, List<int>>> rooms = new List<Tuple<List<int>, List<int>>>();
-			Graph myGraph = new Graph(nodesInput, edges, rooms, areasInput);
+			// Define graph
+			Graph myGraph = new Graph(nodes: nodesInput, areas: areasInput);
+			foreach (string edge in edgesInput)
+			{
+
+				// Check if string contains one dash
+				if (edge.Count(f => f == '-') != 1)
+				{
+					throw new Exception("Edge should be formatted 'node1-node2'");
+				}
+				string[] nodeNames = edge.Split('-');
+
+				myGraph.AddEdge(new Tuple<string, string>(nodeNames[0], nodeNames[1]));
+			};
 
 			DA.SetData(0, myGraph);
 		}

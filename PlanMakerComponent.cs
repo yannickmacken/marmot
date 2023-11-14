@@ -58,6 +58,20 @@ namespace Marmot
 			if (!DA.GetDataList(3, fixedPoints)) { };
 			if (!DA.GetData(4, ref settings)) { };
 
+			// Error handling
+			if (fixedRooms.Count != fixedPoints.Count)
+			{
+				throw new Exception(
+					"Amount of fixed rooms should be equal to amount of fixed points."
+				);
+			}
+			if (fixedRooms.Count > graph.Nodes.Count)
+			{
+				throw new Exception(
+					"Amount of fixed rooms can not be more than graph nodes."
+				);
+			}
+
 			// Load dissection data from resource into memory
 			int numberOfRooms = graph.Nodes.Count;
 			string resourceName = $"marmot.dissections.dissections_{numberOfRooms}_rooms.json";
@@ -147,9 +161,13 @@ namespace Marmot
 					}
 				}
 			}
-			if (mappedGraphs.Count > 0)
+
+			// Raise exception if no solutions found
+			if (mappedGraphs.Count < 1)
 			{
-				// raise error
+				throw new Exception(
+					"No possible solutions found for requirement graph. Try removing some edges."
+				);
 			}
 
 			// Starting vals

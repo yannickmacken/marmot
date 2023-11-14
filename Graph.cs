@@ -55,12 +55,28 @@ namespace Marmot
 			}
 		}
 
-		private void AddEdge(Tuple<string, string> edge)
+		internal void AddEdge(Tuple<string, string> edge)
 		{
-			if (!HasEdge(edge) && HasNode(edge.Item1) && HasNode(edge.Item2))
+			// Throw exceptions
+			if (!HasNode(edge.Item1))
 			{
-				Edges.Add(edge);
+				throw new Exception(string.Format("Edge node {0} not defined in nodes.", edge.Item1));
+			};
+			if (!HasNode(edge.Item2))
+			{
+				throw new Exception(string.Format("Edge node {0} not defined in nodes.", edge.Item2));
+			};
+			if (edge.Item1 == edge.Item2)
+			{
+				throw new Exception(string.Format("Edge {0} contains the same node twice.", edge));
 			}
+			if (HasEdge(edge))
+			{
+				throw new Exception(string.Format("Edge {0} defined multiple times.", edge));
+			}
+
+			// Add edge
+			Edges.Add(edge);
 		}
 
 		private void RemoveNode(string node)
