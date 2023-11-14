@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using static marmot.Helpers;
+using Point = Rhino.Geometry.Point;
 
 namespace Marmot
 {
@@ -214,6 +215,8 @@ namespace Marmot
 				{
 					Function = Objective,
 				};
+				optimizer.Convergence.StartTime = DateTime.Now;
+				optimizer.Convergence.MaximumTime = TimeSpan.FromSeconds(10);
 				bool success = optimizer.Minimize(StartingValues.ToArray());
 				if (!success) { continue; };
 
