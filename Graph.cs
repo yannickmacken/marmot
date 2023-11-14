@@ -87,9 +87,10 @@ namespace Marmot
 
 		public List<Graph> MapOnto(Graph other)
 		{
+			var finalMappings = new List<Graph>();
 			if (Nodes.Count == other.Nodes.Count && Edges.Count <= other.Edges.Count)
 			{
-				var finalMappings = new List<Graph>();
+
 				var mappings = new List<List<string>>();
 				var permutations = GetPermutations(other.Nodes, other.Nodes.Count);
 
@@ -120,14 +121,15 @@ namespace Marmot
 				foreach (var mapping in mappings)
 				{
 					var roomOrder = mapping.Select(x => other.Nodes.IndexOf(x)).ToList();
-					var tempRooms = other.Rooms.Where((x, i) => roomOrder.Contains(i)).ToList();
+					var tempRooms = new List<Tuple<List<int>, List<int>>>();
+					if (other.Rooms.Count > 0)
+					{
+						tempRooms = roomOrder.Select(x => other.Rooms[x]).ToList();
+					}
 					finalMappings.Add(new Graph(Nodes, Edges, tempRooms, Areas));
 				}
-
-				return finalMappings;
 			}
-
-			return null;
+			return finalMappings;
 		}
 
 		public static Graph operator +(Graph a, Graph b)
