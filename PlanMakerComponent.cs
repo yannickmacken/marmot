@@ -146,9 +146,18 @@ namespace Marmot
 					}
 				}
 			}
+			if (mappedGraphs.Count > 0)
+			{
+				// raise error
+			}
+
+			// Starting vals
+			double topScore = double.MaxValue;
+			Graph topGraph = null;
+			List<double> topX = new List<double>();
+			List<double> topY = new List<double>();
 
 			// Loop through mapped graphs
-			double topScore = double.MaxValue;
 			foreach (var mappedGraph in mappedGraphs)
 			{
 				// Determine starting values of room sizes
@@ -189,7 +198,9 @@ namespace Marmot
 						double xDimension = room.Item1.Sum(a => Math.Abs(xVals[a]));
 						double yDimension = room.Item2.Sum(a => Math.Abs(yVals[a]));
 
-						totalDiff.Add(relativeAreaWeight * Math.Pow(Math.Abs(mappedGraph.Areas[i] - xDimension * yDimension), 2) * 0.1);
+						totalDiff.Add(relativeAreaWeight * Math.Pow(
+							Math.Abs(mappedGraph.Areas[i] - xDimension * yDimension), 2) * 0.1
+							);
 						totalDiff.Add(relativeProportionWeight * ConstraintProportion(
 							xDimension, yDimension
 							));
@@ -203,44 +214,57 @@ namespace Marmot
 				{
 					Function = Objective,
 				};
-
-				// Check success
 				bool success = optimizer.Minimize(StartingValues.ToArray());
 				if (!success) { continue; };
 
 				// Unpack values
+				double score = optimizer.Value;
 				double[] optimized = optimizer.Solution;
-				if (optimized[1] < topScore)
+				if (score < topScore)
 				{
-					topScore = optimized[1];
+					// Save top option
+					topScore = score;
+					topX = CalculateSpacing(optimized, 0, xLen, minSize, xTotal);
+					topY = CalculateSpacing(optimized, xLen, optimized.Length, minSize, yTotal);
+					topGraph = mappedGraph;
 				}
-
-				List<double> xtemp = new List<double>();
-				for (int i = 0; i < xLen; i++)
-				{
-					xtemp.Add(Math.Max(minSize, optimized[i]));
-				}
-				xtemp.Add(xTotal - xtemp.Sum()); // Adjust for remaining length
-
-				List<double> x = xtemp.Select(val => xTotal / xtemp.Sum() * val).ToList();
-
-				List<double> ytemp = new List<double>();
-				for (int i = xLen; i < optimized.Length; i++)
-				{
-					ytemp.Add(Math.Max(minSize, optimized[i]));
-				}
-				ytemp.Add(yTotal - ytemp.Sum()); // Adjust for remaining length
-
-				List<double> y = ytemp.Select(val => yTotal / ytemp.Sum() * val).ToList();
-
-				// Deep copy of dgraph
-				// Graph fGraph = mappedGraph.Clone();
-				// Make geometry
-
 			}
 
+			// Draw rectangles for rooms of top solution
+			List<Rectangle3d> roomRectangles = new List<Rectangle3d>();
+			for (int i = 0; i < topGraph.Nodes.Count; i++)
+			{
+				Plane originalPlane = Plane.WorldXY;
+				Point3d insertionPoint = new Point3d(
+					topX.Take(topGraph.Rooms[i].Item1[0]).Sum(),
+					topY.Take(topGraph.Rooms[i].Item2[0]).Sum(),
+					0
+				);
+				Plane insertionPlane = new Plane(insertionPoint, originalPlane.Normal);
+				double xSize = topX.GetRange(
+					topGraph.Rooms[i].Item1[0],
+					topGraph.Rooms[i].Item1.Count
+					).Sum();
+				double ySize = topY.GetRange(
+					topGraph.Rooms[i].Item2[0],
+					topGraph.Rooms[i].Item2.Count
+					).Sum();
+				Rectangle3d roomRectangle = new Rectangle3d(
+					insertionPlane,
+					new Interval(0, xSize),
+					new Interval(0, ySize)
+					);
+				roomRectangle.Transform(
+					Transform.Multiply(
+						Transform.Translation(reverseVector),
+						reverseTransform
+						)
+					);
+				roomRectangles.Add(roomRectangle);
+			}
 
-			DA.SetDataList(0, new List<Rectangle3d>());
+			// Return rectangle list
+			DA.SetDataList(0, roomRectangles);
 		}
 
 		public override GH_Exposure Exposure => GH_Exposure.primary;
