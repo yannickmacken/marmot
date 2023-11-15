@@ -10,23 +10,31 @@
   </PropertyGroup>
 	
   <ItemGroup>
-    <None Remove="dissections\dissections_1_rooms.json" />
-    <None Remove="dissections\dissections_2_rooms.json" />
-    <None Remove="dissections\dissections_3_rooms.json" />
-    <None Remove="dissections\dissections_4_rooms.json" />
-    <None Remove="dissections\dissections_5_rooms.json" />
-    <None Remove="dissections\dissections_6_rooms.json" />
-    <None Remove="dissections\dissections_7_rooms.json" />
+    <None Remove="Dissections\dissections_1_rooms.json" />
+    <None Remove="Dissections\dissections_2_rooms.json" />
+    <None Remove="Dissections\dissections_3_rooms.json" />
+    <None Remove="Dissections\dissections_4_rooms.json" />
+    <None Remove="Dissections\dissections_5_rooms.json" />
+    <None Remove="Dissections\dissections_6_rooms.json" />
+    <None Remove="Dissections\dissections_7_rooms.json" />
+    <None Remove="Icons\deGraph.png" />
+    <None Remove="Icons\graph.png" />
+    <None Remove="Icons\planMaker.png" />
+    <None Remove="Icons\planSettings.png" />
   </ItemGroup>
 	
   <ItemGroup>
-    <EmbeddedResource Include="dissections\dissections_1_rooms.json" />
-    <EmbeddedResource Include="dissections\dissections_2_rooms.json" />
-    <EmbeddedResource Include="dissections\dissections_3_rooms.json" />
-    <EmbeddedResource Include="dissections\dissections_4_rooms.json" />
-    <EmbeddedResource Include="dissections\dissections_5_rooms.json" />
-    <EmbeddedResource Include="dissections\dissections_6_rooms.json" />
-    <EmbeddedResource Include="dissections\dissections_7_rooms.json" />
+    <EmbeddedResource Include="Dissections\dissections_1_rooms.json" />
+    <EmbeddedResource Include="Dissections\dissections_2_rooms.json" />
+    <EmbeddedResource Include="Dissections\dissections_3_rooms.json" />
+    <EmbeddedResource Include="Dissections\dissections_4_rooms.json" />
+    <EmbeddedResource Include="Dissections\dissections_5_rooms.json" />
+    <EmbeddedResource Include="Dissections\dissections_6_rooms.json" />
+    <EmbeddedResource Include="Dissections\dissections_7_rooms.json" />
+    <EmbeddedResource Include="Icons\deGraph.png" />
+    <EmbeddedResource Include="Icons\graph.png" />
+    <EmbeddedResource Include="Icons\planMaker.png" />
+    <EmbeddedResource Include="Icons\planSettings.png" />
   </ItemGroup>
   
   <ItemGroup>

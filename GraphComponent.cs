@@ -2,6 +2,7 @@ using Grasshopper.Kernel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Marmot
 {
@@ -74,7 +75,18 @@ namespace Marmot
 
 		public override GH_Exposure Exposure => GH_Exposure.primary;
 
-		protected override System.Drawing.Bitmap Icon => null;
+		protected override System.Drawing.Bitmap Icon
+		{
+			get
+			{
+				string resourceName = "marmot.Icons.graph.png";
+				var assembly = Assembly.GetExecutingAssembly();
+				using (var stream = assembly.GetManifestResourceStream(resourceName))
+				{
+					return new System.Drawing.Bitmap(stream);
+				}
+			}
+		}
 
 		public override Guid ComponentGuid => new Guid("f4616a8a-b80b-4b49-9691-5716b7e3680f");
 	}

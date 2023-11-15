@@ -74,7 +74,7 @@ namespace Marmot
 
 			// Load dissection data from resource into memory
 			int numberOfRooms = graph.Nodes.Count;
-			string resourceName = $"marmot.dissections.dissections_{numberOfRooms}_rooms.json";
+			string resourceName = $"marmot.Dissections.dissections_{numberOfRooms}_rooms.json";
 			var assembly = Assembly.GetExecutingAssembly();
 			var stream = assembly.GetManifestResourceStream(resourceName);
 			var reader = new StreamReader(stream);
@@ -294,7 +294,19 @@ namespace Marmot
 
 		public override GH_Exposure Exposure => GH_Exposure.primary;
 
-		protected override System.Drawing.Bitmap Icon => null;
+		protected override System.Drawing.Bitmap Icon
+		{
+			get
+			{
+				string resourceName = "marmot.Icons.planMaker.png";
+				var assembly = Assembly.GetExecutingAssembly();
+				using (var stream = assembly.GetManifestResourceStream(resourceName))
+				{
+					return new System.Drawing.Bitmap(stream);
+				}
+			}
+		}
+
 
 		public override Guid ComponentGuid => new Guid("ded68cf8-aeb0-4a18-a2e3-be2c7a7f843b");
 	}
