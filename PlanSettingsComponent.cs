@@ -66,10 +66,10 @@ namespace Marmot
 			double? wP = null;
 			double? M = null;
 
-			if (!DA.GetData(0, ref wfR)) return;
-			if (!DA.GetData(0, ref wA)) return;
-			if (!DA.GetData(0, ref wP)) return;
-			if (!DA.GetData(0, ref M)) return;
+			if (!DA.GetData(0, ref wfR)) { };
+			if (!DA.GetData(1, ref wA)) { };
+			if (!DA.GetData(2, ref wP)) { };
+			if (!DA.GetData(3, ref M)) { };
 
 			Settings planSettings = new Settings(wfR, wA, wP, M);
 

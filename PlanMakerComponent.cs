@@ -100,7 +100,7 @@ namespace Marmot
 			double relativeAreaWeight;
 			double relativeProportionWeight;
 			double minSize;
-			if (settings == null)
+			if (settings is null)
 			{
 				relativeFixedRoomWeight = 1.0;
 				relativeAreaWeight = 1.0;
@@ -203,6 +203,12 @@ namespace Marmot
 
 					// Start counting score to minimize
 					List<double> totalDiff = new List<double>();
+
+					// Add punishment for minimum widths
+					foreach (double val in xVals.Concat(yVals))
+					{
+						if (val < minSize) totalDiff.Add((minSize - val) * 10);
+					}
 
 					// Add punishment for distance of fixedRoom to fixedRoomPoint
 					if (roomsFixed)
