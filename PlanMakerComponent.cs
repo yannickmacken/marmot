@@ -5,11 +5,11 @@ using Newtonsoft.Json;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using static marmot.Helpers;
-using Point = Rhino.Geometry.Point;
 
 namespace Marmot
 {
@@ -32,7 +32,7 @@ namespace Marmot
 				GH_ParamAccess.item
 				);
 			pManager.AddTextParameter("Fixed Rooms", "fR", "Rooms with fixed position", GH_ParamAccess.list);
-			pManager.AddTextParameter("Fixed Points", "fP", "Points for position of fixed rooms", GH_ParamAccess.list);
+			pManager.AddPointParameter("Fixed Points", "fP", "Points for position of fixed rooms", GH_ParamAccess.list);
 			pManager.AddGenericParameter("PlanSettings", "S", "Advanced PlanSettings", GH_ParamAccess.item);
 			pManager[2].Optional = true;
 			pManager[3].Optional = true;
@@ -49,7 +49,7 @@ namespace Marmot
 			Graph graph = null;
 			Rectangle3d inRectangle = new Rectangle3d();
 			List<string> fixedRooms = new List<string>();
-			List<Point> fixedPoints = new List<Point>();
+			List<Point3d> fixedPoints = new List<Point3d>();
 			Settings settings = null;
 
 			if (!DA.GetData(0, ref graph)) return;
@@ -100,12 +100,14 @@ namespace Marmot
 			double relativeAreaWeight;
 			double relativeProportionWeight;
 			double minSize;
+			int timeOut;
 			if (settings is null)
 			{
 				relativeFixedRoomWeight = 1.0;
 				relativeAreaWeight = 1.0;
 				relativeProportionWeight = 1.0;
 				minSize = 1.0;
+				timeOut = 60;
 			}
 			else
 			{
@@ -113,6 +115,7 @@ namespace Marmot
 				double areaWeight = settings.WAreas ?? 1.0;
 				double proportionWeight = settings.WProportions ?? 1.0;
 				minSize = settings.MinSize ?? 1.0;
+				timeOut = settings.TimeOut ?? 60;
 				double totalWeight = fixedRoomWeight + areaWeight + proportionWeight;
 				relativeFixedRoomWeight = fixedRoomWeight / totalWeight;
 				relativeAreaWeight = areaWeight / totalWeight;
@@ -123,14 +126,19 @@ namespace Marmot
 			var roomsFixed = fixedRooms.Any() & fixedPoints.Any();
 			if (roomsFixed)
 			{
-				foreach (var point in fixedPoints)
+				for (var i = 0; i < fixedPoints.Count; i++)
 				{
+					var point = fixedPoints[i];
 					point.Transform(transform);
-					point.Translate(moveVector);
+					point.Transform(Transform.Translation(moveVector));
+					fixedPoints[i] = point;
 				}
 			}
 
 			// Loop through dissections
+			TimeSpan timeoutMapping = TimeSpan.FromSeconds(timeOut / 2); // Timeout duration
+			Stopwatch stopwatch = new Stopwatch();
+			stopwatch.Start();
 			var mappedGraphs = new List<Graph>();
 			foreach (var dissection in root)
 			{
@@ -160,7 +168,12 @@ namespace Marmot
 						mappedGraphs.AddRange(mirroredGraphs);
 					}
 				}
+
+				// Check for timeout
+				if (stopwatch.Elapsed > timeoutMapping) break;
 			}
+			stopwatch.Stop();
+			stopwatch.Reset();
 
 			// Raise exception if no solutions found
 			if (mappedGraphs.Count < 1)
@@ -177,6 +190,8 @@ namespace Marmot
 			List<double> topY = new List<double>();
 
 			// Loop through mapped graphs
+			TimeSpan timeoutOptimizing = TimeSpan.FromSeconds(timeOut / 2); // Timeout duration
+			stopwatch.Start();
 			foreach (var mappedGraph in mappedGraphs)
 			{
 				// Determine starting values of room sizes
@@ -259,7 +274,11 @@ namespace Marmot
 					topY = spacingVals.Item2;
 					topGraph = mappedGraph;
 				}
+
+				// Check for timeout
+				if (stopwatch.Elapsed > timeoutMapping) break;
 			}
+			stopwatch.Stop();
 
 			// Draw rectangles for rooms of top solution
 			List<Rectangle3d> roomRectangles = new List<Rectangle3d>();

@@ -47,10 +47,19 @@ namespace Marmot
 				GH_ParamAccess.item,
 				1.0
 				);
+			pManager.AddIntegerParameter(
+				"Timeout duration",
+				"T",
+				"Maximum time (s) that the planmaker component is allowed to optimize the floorplan" +
+				"- a short timeout can lead to less optimal results",
+				GH_ParamAccess.item,
+				60
+				);
 			pManager[0].Optional = true;
 			pManager[1].Optional = true;
 			pManager[2].Optional = true;
 			pManager[3].Optional = true;
+			pManager[4].Optional = true;
 		}
 
 
@@ -65,13 +74,15 @@ namespace Marmot
 			double? wA = null;
 			double? wP = null;
 			double? M = null;
+			int? T = null;
 
 			if (!DA.GetData(0, ref wfR)) { };
 			if (!DA.GetData(1, ref wA)) { };
 			if (!DA.GetData(2, ref wP)) { };
 			if (!DA.GetData(3, ref M)) { };
+			if (DA.GetData(4, ref T)) { };
 
-			Settings planSettings = new Settings(wfR, wA, wP, M);
+			Settings planSettings = new Settings(wfR, wA, wP, M, T);
 
 			DA.SetData(0, planSettings);
 		}

@@ -24,7 +24,7 @@ namespace marmot
 			return Math.Max(a, b) / Math.Min(a, b) - 2;
 		}
 
-		internal static double ConstraintDistanceRoomToPoint(Graph graph, List<string> rooms, List<Point> points, List<double> xDims, List<double> yDims)
+		internal static double ConstraintDistanceRoomToPoint(Graph graph, List<string> rooms, List<Point3d> points, List<double> xDims, List<double> yDims)
 		{
 			// Finds distances of room centers and preferred positions
 			double distance = 0;
@@ -33,7 +33,7 @@ namespace marmot
 				int fixedRoomIndex = graph.Nodes.IndexOf(rooms[i]);
 				var roomSpacing = graph.Rooms[fixedRoomIndex];
 
-				Point3d point = points[i].Location;
+				Point3d point = points[i];
 
 				double xCentreRoom = (xDims.GetRange(0, roomSpacing.Item1[0]).Sum() + xDims.GetRange(0, roomSpacing.Item1.Last() + 1).Sum()) / 2;
 				double yCentreRoom = (yDims.GetRange(0, roomSpacing.Item2[0]).Sum() + yDims.GetRange(0, roomSpacing.Item2.Last() + 1).Sum()) / 2;
