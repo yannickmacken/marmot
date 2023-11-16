@@ -4,11 +4,13 @@ using marmot;
 using Newtonsoft.Json;
 using Rhino.Geometry;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using static marmot.Helpers;
 
 namespace Marmot
@@ -139,8 +141,8 @@ namespace Marmot
 			TimeSpan timeoutMapping = TimeSpan.FromSeconds(timeOut / 2); // Timeout duration
 			Stopwatch stopwatch = new Stopwatch();
 			stopwatch.Start();
-			var mappedGraphs = new List<Graph>();
-			foreach (var dissection in root)
+			var mappedGraphs = new ConcurrentBag<Graph>();
+			Parallel.ForEach(root, (dissection, state) =>
 			{
 				// Create new Graph from dissection
 				var dissectionGraph = new Graph(
@@ -155,7 +157,7 @@ namespace Marmot
 
 				// Map requirement graph onto dissection graph
 				var mappedGraphsTemp = graph.MapOnto(dissectionGraph);
-				mappedGraphs.AddRange(mappedGraphsTemp);
+				foreach (var mappedGraph in mappedGraphsTemp) mappedGraphs.Add(mappedGraph);
 
 				// Get equivalent graphs from mapped graphs
 				foreach (var mappedGraph in mappedGraphsTemp)
@@ -165,13 +167,16 @@ namespace Marmot
 					if (roomsFixed)  // If rooms fixed, orientation matters
 					{
 						var mirroredGraphs = mappedGraph.MirrorGraph();
-						mappedGraphs.AddRange(mirroredGraphs);
+						foreach (var mirroredGraph in mirroredGraphs)
+						{
+							mappedGraphs.Add(mirroredGraph);
+						}
 					}
 				}
 
 				// Check for timeout
-				if (stopwatch.Elapsed > timeoutMapping) break;
-			}
+				if (stopwatch.Elapsed > timeoutMapping) state.Break();
+			});
 			stopwatch.Stop();
 			stopwatch.Reset();
 
@@ -184,6 +189,7 @@ namespace Marmot
 			}
 
 			// Starting vals
+			object lockObject = new object();
 			double topScore = double.MaxValue;
 			Graph topGraph = null;
 			List<double> topX = new List<double>();
@@ -192,7 +198,7 @@ namespace Marmot
 			// Loop through mapped graphs
 			TimeSpan timeoutOptimizing = TimeSpan.FromSeconds(timeOut / 2); // Timeout duration
 			stopwatch.Start();
-			foreach (var mappedGraph in mappedGraphs)
+			Parallel.ForEach(mappedGraphs, (mappedGraph, state) =>
 			{
 				// Determine starting values of room sizes
 				var xSpacing = new List<List<int>>();
@@ -260,24 +266,36 @@ namespace Marmot
 				optimizer.Convergence.StartTime = DateTime.Now;
 				optimizer.Convergence.MaximumTime = TimeSpan.FromSeconds(10);
 				bool success = optimizer.Minimize(StartingValues.ToArray());
-				if (!success) { continue; };
-
-				// Unpack values
-				double score = optimizer.Value;
-				double[] optimized = optimizer.Solution;
-				if (score < topScore)
+				if (success)
 				{
+					// Unpack values
+					double score = optimizer.Value;
+					double[] optimized = optimizer.Solution;
+
 					// Save top option
-					topScore = score;
-					var spacingVals = CalculateSpacing(optimized, xLen, yLen, width, height);
-					topX = spacingVals.Item1;
-					topY = spacingVals.Item2;
-					topGraph = mappedGraph;
+					if (score < topScore)
+					{
+						lock (lockObject)
+						{
+							// Re-check the condition to ensure it hasn't
+							// been updated by another thread
+							if (score < topScore)
+							{
+								topScore = score;
+								var spacingVals = CalculateSpacing(
+									optimized, xLen, yLen, width, height
+									);
+								topX = spacingVals.Item1;
+								topY = spacingVals.Item2;
+								topGraph = mappedGraph;
+							}
+						}
+					}
 				}
 
 				// Check for timeout
-				if (stopwatch.Elapsed > timeoutMapping) break;
-			}
+				if (stopwatch.Elapsed > timeoutMapping) state.Break();
+			});
 			stopwatch.Stop();
 
 			// Draw rectangles for rooms of top solution
