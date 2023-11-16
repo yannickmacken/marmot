@@ -83,7 +83,7 @@ namespace Marmot
 			string dissectionData = reader.ReadToEnd();
 
 			// Parse json with dissection data
-			var root = JsonConvert.DeserializeObject<List<Dissection>>(dissectionData);
+			var root = JsonConvert.DeserializeObject<Dissection[]>(dissectionData);
 			if (root == null)
 			{
 				return;
@@ -210,8 +210,8 @@ namespace Marmot
 				}
 				int xLen = xSpacing.Max(space => space.Last()) + 1;
 				int yLen = ySpacing.Max(space => space.Last()) + 1;
-				List<double> StartingValues = Enumerable.Repeat(1.0 / (xLen), xLen)
-					.Concat(Enumerable.Repeat(1.0 / (yLen), yLen)).ToList();
+				double[] StartingValues = Enumerable.Repeat(1.0 / (xLen), xLen)
+					.Concat(Enumerable.Repeat(1.0 / (yLen), yLen)).ToArray();
 
 				// Dynamically define objective function to optimize
 				double Objective(double[] z)
@@ -223,12 +223,12 @@ namespace Marmot
 					List<double> yVals = spacingVals.Item2;
 
 					// Start counting score to minimize
-					List<double> totalDiff = new List<double>();
+					double totalDiff = 0.0;
 
 					// Add punishment for minimum widths
 					foreach (double val in xVals.Concat(yVals))
 					{
-						if (val < minSize) totalDiff.Add((minSize - val) * 10);
+						if (val < minSize) totalDiff += ((minSize - val) * 10);
 					}
 
 					// Add punishment for distance of fixedRoom to fixedRoomPoint
@@ -237,7 +237,7 @@ namespace Marmot
 						var constraintDistance = ConstraintDistanceRoomToPoint(
 							mappedGraph, fixedRooms, fixedPoints, xVals, yVals
 							);
-						totalDiff.Add(relativeFixedRoomWeight * constraintDistance);
+						totalDiff += relativeFixedRoomWeight * constraintDistance;
 					}
 
 					// Add punishment for stretched proportion of rooms
@@ -247,25 +247,25 @@ namespace Marmot
 						double xDimension = room.Item1.Sum(a => Math.Abs(xVals[a]));
 						double yDimension = room.Item2.Sum(a => Math.Abs(yVals[a]));
 
-						totalDiff.Add(relativeAreaWeight * Math.Pow(
-							Math.Abs(mappedGraph.Areas[i] - xDimension * yDimension), 2) * 0.1
-							);
-						totalDiff.Add(relativeProportionWeight * ConstraintProportion(
+						totalDiff += relativeAreaWeight * Math.Pow(
+							Math.Abs(mappedGraph.Areas[i] - xDimension * yDimension), 2
+							) * 0.1;
+						totalDiff += relativeProportionWeight * ConstraintProportion(
 							xDimension, yDimension
-							));
+							);
 					}
 
-					return totalDiff.Sum();
+					return totalDiff;
 				}
 
 				// Optimize room sizes
-				var optimizer = new NelderMead(numberOfVariables: StartingValues.Count)
+				var optimizer = new NelderMead(numberOfVariables: StartingValues.Length)
 				{
 					Function = Objective,
 				};
 				optimizer.Convergence.StartTime = DateTime.Now;
 				optimizer.Convergence.MaximumTime = TimeSpan.FromSeconds(10);
-				bool success = optimizer.Minimize(StartingValues.ToArray());
+				bool success = optimizer.Minimize(StartingValues);
 				if (success)
 				{
 					// Unpack values
